@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!-- 数据库配置文件 -->
+    <context:property-placeholder location="classpath:properties/*.properties"/>
+
+    <!-- 组件扫描 -->
+    <context:component-scan base-package="com.zyy.migrate"/>
+
+    <!-- 需要导出数据的数据源 -->
+    <bean id="sourceDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+        <property name="driverClass" value="${sourceDataSource.driverClass}"/>
+        <property name="jdbcUrl" value="${sourceDataSource.jdbcUrl}"/>
+        <property name="user" value="${sourceDataSource.user}"/>
+        <property name="password" value="${sourceDataSource.password}"/>
+    </bean>
+
+    <!-- 目标数据源 -->
+    <bean id="targetDataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+        <property name="driverClass" value="${targetDataSource.driverClass}"/>
+        <property name="jdbcUrl" value="${targetDataSource.jdbcUrl}"/>
+        <property name="user" value="${targetDataSource.user}"/>
+        <property name="password" value="${targetDataSource.password}"/>
+    </bean>
+
+    <!-- 工作执行者 -->
+    <bean class="org.easybatch.core.job.JobExecutor" destroy-method="shutdown"/>
+
+    <bean class="org.easybatch.tools.reporting.HtmlJobReportFormatter"/>
+
+    <!-- 报告合并 -->
+    <bean class="org.easybatch.core.job.DefaultJobReportMerger"/>
+</beans>
