@@ -8,6 +8,8 @@ import org.easybatch.core.processor.RecordProcessor;
 import org.easybatch.core.record.Record;
 import org.springframework.stereotype.Component;
 
+import java.sql.Timestamp;
+
 /**
  * @author yangyang.zhang
  * @date 2019年11月04日22:48:34
@@ -25,14 +27,14 @@ public class ArticleRecordProcessor implements RecordProcessor {
         article.setPassed(1);
         article.setReadType(4);
 
-        String content = EmojiParser.removeAllEmojis(article.getContent());
-        article.setContent(content);
+        //String content = EmojiParser.removeAllEmojis(article.getContent());
+        //article.setContent(content);
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("pic", article.getArticleExtend());
         article.setArticleExtend(jsonObject.toJSONString());
 
-        log.info("Article: {}", article.getId());
+        //log.info("Article: {}", article.getId());
         return record;
     }
 }
