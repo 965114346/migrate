@@ -4,6 +4,7 @@ import com.zyy.migrate.factory.JdbcRecordReaderFactoryBean;
 import com.zyy.migrate.factory.JdbcRecordWriterFactoryBean;
 import com.zyy.migrate.model.Article;
 import com.zyy.migrate.model.BlackList;
+import com.zyy.migrate.model.Grid;
 import com.zyy.migrate.model.Sort;
 import com.zyy.migrate.processor.ArticleRecordProcessor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +12,9 @@ import org.apache.commons.io.FileUtils;
 import org.easybatch.core.job.*;
 import org.easybatch.core.listener.JobListener;
 import org.easybatch.core.mapper.RecordMapper;
+import org.easybatch.core.processor.RecordProcessor;
 import org.easybatch.core.reader.RecordReader;
+import org.easybatch.core.record.Record;
 import org.easybatch.core.writer.StandardOutputRecordWriter;
 import org.easybatch.jdbc.*;
 import org.easybatch.tools.reporting.HtmlJobReportFormatter;
@@ -23,9 +26,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import javax.sql.DataSource;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author yangyang.zhang
@@ -91,7 +92,7 @@ public class MigrateApplication {
                 .build();
     }
 
-    @Bean
+    //@Bean
     public Job job(ArticleRecordProcessor processor, JobListener jobListener) {
 
         // article
@@ -126,6 +127,44 @@ public class MigrateApplication {
                 .reader(new JdbcRecordReader(sourceDataSource, query))
                 .mapper(new JdbcRecordMapper(BlackList.class, fields))
                 .writer(new JdbcRecordWriter(targetDataSource, insert, new BeanPropertiesPreparedStatementProvider(BlackList.class, fields)))
+                .build();
+    }
+
+    @Bean
+    public Job IdList(JobListener jobListener) {
+        //查询数据库的需要更新的数据
+        String query = "select GRIDID,RADAR_CONTEXT,RADAR_TIME from WECHAT_GRID_RADAR";
+        //数据库更新语句
+        String update = "update WECHAT_GRID_RADAR set RADAR_CONTEXT = '?' where GRIDID = ?";
+
+        //属性映射
+        String[] readFields = {"id", "context", "time"};
+        String[] writerFields = {"context", "id"};
+
+        // 你的文件数据列表
+        List<Grid> list = new ArrayList<>();
+
+        return JobBuilder.aNewJob().named("IdList Job")
+                //事务，批量操作大小，默认100条操作一次
+                .batchSize(100)
+                //这个监听是生成报告用的
+                .jobListener(jobListener)
+                .reader(new JdbcRecordReader(sourceDataSource, query))
+                .mapper(new JdbcRecordMapper(Grid.class, readFields))
+                .processor(new RecordProcessor() {
+                    @Override
+                    public Record processRecord(Record record) throws Exception {
+                        Grid grid = (Grid)record;
+
+                        for (Grid g : list) {
+                            if (Objects.equals(grid.getId(), g.getId())) {
+                                grid.setContext(g.getContext());
+                            }
+                        }
+                        return record;
+                    }
+                })
+                .writer(new JdbcRecordWriter(targetDataSource, update, new BeanPropertiesPreparedStatementProvider(Grid.class, writerFields)))
                 .build();
     }
 
